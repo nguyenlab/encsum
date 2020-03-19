@@ -17,7 +17,7 @@ import logging
 logger=logging
 
 from .common import IRMeta, run_async, save_npz
-
+from .preprocess_docs import make_sentence_chunks, process_embeddings
 
 def prepare_label(corpus_dir, numeric_dir):
     data = {}
@@ -28,35 +28,20 @@ def prepare_label(corpus_dir, numeric_dir):
     save_npz(Path(numeric_dir)/'relevance.npz', keyed_arrays=data)
 
 
-def w2i(w, word2idx, oov=Counter()):
-    i=word2idx.get(w) or word2idx.get(re.sub(r'[\W0-9]', '', w.lower())) 
-    if not i: 
-        oov[w]+=1
-        i=1
-    return i
-
-
-def pre_data(input_filepath,word2idx,min_line_length=5,encoding='utf-8'):
+def pre_data(input_filepath, vocab, min_line_length=5, encoding='utf-8'):
     input_filepath=Path(input_filepath)
     oov=Counter()
-    sents = []
-    sent_boundaries = [0]
     
     with open(input_filepath,encoding=encoding) as f:
         lines = f.readlines()
 
-    for line in lines:
-        if len(line) < min_line_length: continue  # skip one-word line
-        tokens = line.split()
-        if not tokens: continue
-        token_idxs = [w2i(w,word2idx,oov) for w in tokens]
-        sents += token_idxs
-        sent_boundaries += [sent_boundaries[-1] + len(token_idxs)]
+    sent_chunks = make_sentence_chunks([
+        line.split() for line in lines if len(line) >= min_line_length 
+        for tokens in [line.split()] if tokens], vocab, oov=oov)
 
-    if not sents:
-        sents = [1]
-        sent_boundaries = [0, 1]
-    return [np.array(sents, dtype='int32'), np.array(sent_boundaries, dtype='int32')], oov
+    if not sent_chunks[0].shape[0]:
+        sent_chunks = [np.array([1], dtype='int32'), np.array([0,1], dtype='int32')]
+    return sent_chunks, oov
     
 
 def text2numeric(text_dir, numeric_dir, meta_file, min_line_length=5, doctypes=['summary', 'paras', 'lead_sents'], encoding='utf-8', cpu_count=2):
@@ -165,33 +150,6 @@ def prepare_corpus_meta(corpus_path, data_path, encoding='utf-8', **kwargs):
                 words |= set(tokens)
     logger.info('n_words: %s', len(words))
     Path(data_path,'word_list.txt').write_text('\n'.join(sorted(words)),encoding='utf-8')
-
-
-def process_embeddings(embeddings_file,output_dir,filter_words=None):
-    output_dir=Path(output_dir)
-    with open(embeddings_file,encoding='utf-8') as f:
-        row = f.readline().split()
-        if len(row) == 2:
-            _,vec_size=list(map(int,row))
-        else:
-            f.seek(0)
-            vec_size=len(row)-1
-
-        vocab={0:0,1:1}
-        vecs=[np.zeros((2,vec_size),dtype='float32')]
-
-        for line in f:
-            row = line.rsplit(maxsplit=vec_size)
-            word = row[0]
-            if filter_words is not None and word not in filter_words: continue
-            if word in vocab: continue
-            vocab[word]=len(vocab)
-            vecs.append(np.array([row[1:]],dtype='float32'))
-        del vocab[0],vocab[1] # remove padding and unk from lookup
-        vecs = np.concatenate(vecs)
-    with open(output_dir/'emb_vocab.json','w',encoding='utf-8') as f:
-        json.dump(vocab,f,ensure_ascii=False)
-    save_npz(output_dir/'embeddings.npz', keyed_arrays={'embeddings':vecs})
 
 
 def tokenize_file(infilepath, outfilepath):

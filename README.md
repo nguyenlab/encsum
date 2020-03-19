@@ -140,7 +140,7 @@ python -m encsum_rtv.preprocess_holj \
 
 - Generating Summary
 ```bash
-python -m encsum_rtv.generate_summary_holj \
+python -m encsum_rtv.generate_summary \
     --corpus-dir data/holj/preprocessed \
     --output-dir output/holj \
     --config-file model/score_model.yaml \
@@ -153,9 +153,62 @@ python -m encsum_rtv.generate_summary_holj \
 
 - Evaluation
 ```bash
-python -m encsum_rtv.evaluate_summary_holj \
+python -m encsum_rtv.evaluate_summary \
     --corpus-dir data/holj/preprocessed \
     --predict-dir output/holj
+```
+## Other Summarization Task
+
+### Train EncSum Model using other corpus
+
+- Preprocessing
+```bash
+python -m encsum_rtv.preprocess_docs \
+    --corpus-dir path/to/corpus/dir \
+    --embedings-file path/to/glove/embedding/file \
+    --output-data data/other/task/preprocessed
+
+```
+`path/to/corpus/dir` contains documents with filename format (docname.sentences, docname.summary), for example:
+```
+doc1.sentences
+doc1.summary
+doc2.sentences
+doc2.summary
+...
+```
+
+- Train Neural Net
+```bash
+python -m encsum_rtv.encsum encsum_nn \
+    --train \
+    --doctypes "{'summary': 'summary', 'sentences': 'sentences'}"
+    --data-dir data/other/task/preprocessed \
+    --model-dir model \
+    --mini-epoch-factor 50 \
+    --nb-epochs 5 
+```
+
+### Generating Summary
+
+- Generating Summary
+```bash
+python -m encsum_rtv.generate_summary \
+    --corpus-dir path/to/corpus/dir \
+    --output-dir output/summary/dir \
+    --config-file model/score_model.yaml \
+    --weight-file model/model_weights.hdf5 \
+    --vocab-file model/emb_vocab.json \
+    --summary-mode sentence_selection \
+    --top-anchor 0.10
+```
+`--top-anchor 0.10`: 10% of #sentences as summary. 
+
+- Evaluation
+```bash
+python -m encsum_rtv.evaluate_summary \
+    --corpus-dir path/to/corpus/dir \
+    --predict-dir output/summary/dir
 ```
 
 # Reference

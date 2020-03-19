@@ -9,51 +9,7 @@ import numpy as np
 from keras.models import model_from_yaml
 
 from .encsum import OBJECTS
-from .preprocess_coliee2018 import w2i
-
-
-def parse_text(text):
-    """
-    return list of sentences, each sentence is a list of tokens
-    """
-    with io.StringIO(text) as f:
-        return [sentence.split() for sentence in f]
-
-
-def preprocess(corpus, vocab):
-    """
-    map tokens to indices by vocab
-    """
-
-    numericalized_corpus = {}
-    for content_type in corpus:
-        numericalized_corpus[content_type] = numericalized_docs = {}
-        docs = corpus[content_type]
-        for docid in docs:
-            sents = []
-            sent_boundaries = [0]
-            for sentence in docs[docid]:
-                sents += [w2i(w,vocab) for w in sentence]
-                sent_boundaries += [sent_boundaries[-1] + len(sentence)]
-            numericalized_docs[docid] = [np.array(sents, dtype='int32'), np.array(sent_boundaries, dtype='int32')]
-    return numericalized_corpus
-
-
-def load_vocab(vocab_file):
-    with open(vocab_file, encoding='utf-8') as f:
-        return json.load(f)
-
-
-def load_corpus(corpus_dir):
-    corpus = {'summary': {}, 'sentences': {}}
-    for filename in os.listdir(corpus_dir):
-        doc_id, content_type = filename.rsplit('.', maxsplit=1)
-        if content_type not in corpus: continue
-        with open(os.path.join(corpus_dir, filename), encoding='utf-8') as f:
-            contents = parse_text(f.read())
-            corpus[content_type][doc_id] = contents
-    return corpus
-
+from .preprocess_docs import parse_text, preprocess, load_vocab, load_corpus
 
 def get_model(config_file, weight_file):
     with open(config_file) as f:
