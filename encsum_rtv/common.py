@@ -69,14 +69,14 @@ def run_pool(calls, cpu_count=4, chunksize=None):
         chunksize = max(1, len(calls)//cpu_count//10)
 
     with Pool(cpu_count) as pool:
-        return pool.map(call,calls, chunksize=chunksize) #
+        return pool.map(call, calls, chunksize=chunksize) #
     
 
-def run_async(calls, use_mpi=False, cpu_count=4):
+def run_async(calls, use_mpi=False, cpu_count=4, chunksize=None):
     if use_mpi:
         return run_mpi(calls=calls)
     else:
-        return run_pool(calls=calls, cpu_count=cpu_count)
+        return run_pool(calls=calls, cpu_count=cpu_count, chunksize=chunksize)
 
 def save_npz(filepath,*,arrays=[],keyed_arrays={}):
     np.lib.npyio._savez(filepath, arrays, keyed_arrays, True, allow_pickle=True)
