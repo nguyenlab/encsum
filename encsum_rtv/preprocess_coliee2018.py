@@ -58,7 +58,7 @@ def text2numeric(text_dir, numeric_dir, meta_file, min_line_length=5, doctypes=[
     doctypes_set = set(doctypes)
     meta = IRMeta.from_xml(str(meta_file))
     with open(numeric_dir/'emb_vocab.json', encoding=encoding) as f:
-        word2idx = json.load(f)
+        vocab = json.load(f)
 
     oov=Counter()
     cases = [entry.name for entry in meta.entries.values()]
@@ -78,7 +78,7 @@ def text2numeric(text_dir, numeric_dir, meta_file, min_line_length=5, doctypes=[
         functools.partial(
             pre_data,
             input_filepath=job[1],
-            word2idx=word2idx,
+            vocab=vocab,
             min_line_length=min_line_length,
             encoding=encoding) 
         for job in jobs], cpu_count=cpu_count,chunksize=max(1,len(jobs)//cpu_count//10))
