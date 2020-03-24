@@ -12,6 +12,7 @@ import h5py as h5
 import yaml
 import warnings
 import functools
+import shutil
 
 import keras
 from keras.layers import Input, Embedding, Conv1D, Dense, concatenate, multiply
@@ -160,9 +161,9 @@ def train(data_dir,
         build_new_model=True, 
         model_hyper_parameters=model_hyper_parameters        
         )['train']
-        
+
     if os.path.exists(os.path.join(data_dir,'emb_vocab.json')) and not os.path.exists(os.path.join(model_dir,'emb_vocab.json')):
-        os.copy(os.path.join(data_dir,'emb_vocab.json'),model_dir)
+        shutil.copy(os.path.join(data_dir,'emb_vocab.json'),model_dir)
     else:
         logger.warning(f'Make sure emb_vocab.json is either in {data_dir} or {model_dir}.')
     
